@@ -51,7 +51,16 @@ class PDFMetadataExtractor:
     def create_new_filename(self, metadata: Dict[str, Any]) -> str:
         """Create new filename from metadata in format: YEAR - AUTHOR - TITLE.pdf"""
         year = self.sanitize_filename(metadata.get('year', 'Unknown'))
-        author = self.sanitize_filename(metadata.get('author', 'Unknown'))
+        
+        # Handle author field - it might be a string or a list
+        author_raw = metadata.get('author', 'Unknown')
+        if isinstance(author_raw, list):
+            # If it's a list, take the first author and convert to string
+            author = str(author_raw[0]) if author_raw else 'Unknown'
+        else:
+            author = str(author_raw)
+        
+        author = self.sanitize_filename(author)
         title = self.sanitize_filename(metadata.get('title', 'Unknown'))
         
         # Handle multiple authors - take first author if comma/and separated
