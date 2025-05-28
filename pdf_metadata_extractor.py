@@ -12,6 +12,8 @@ import base64
 import io
 import re
 import shutil
+import time
+from datetime import datetime
 
 try:
     from pdf2image import convert_from_path
@@ -122,7 +124,7 @@ class PDFMetadataExtractor:
         return base64.b64encode(image_bytes).decode()
     
     def extract_metadata_from_images(self, images: List[Image.Image], filename: str) -> Dict[str, Any]:
-        """Extract metadata using Gemini API"""
+        """Extract metadata using Gemini API with retry logic for rate limits"""
         if not images:
             return {"error": "No images to process"}
         
@@ -148,52 +150,78 @@ class PDFMetadataExtractor:
         Analyze carefully and extract the most accurate information possible.
         """
         
-        try:
-            # Prepare image data for Gemini API
-            image_parts = []
-            for i, image in enumerate(images[:2]):  # Use first 2 pages maximum
-                image_parts.append({
-                    "mime_type": "image/png",
-                    "data": self.image_to_base64(image)
-                })
-            
-            # Create the content with images and prompt
-            content = image_parts + [prompt]
-            
-            # Generate response
-            response = self.model.generate_content(content)
-            
-            # Parse JSON response
+        max_retries = 3
+        base_delay = 60  # Base delay for rate limiting (60 seconds)
+        
+        for attempt in range(max_retries):
             try:
-                response_text = response.text.strip()
+                # Prepare image data for Gemini API
+                image_parts = []
+                for i, image in enumerate(images[:2]):  # Use first 2 pages maximum
+                    image_parts.append({
+                        "mime_type": "image/png",
+                        "data": self.image_to_base64(image)
+                    })
                 
-                # Remove markdown code blocks if present
-                if response_text.startswith('```json'):
-                    response_text = response_text[7:]  # Remove ```json
-                if response_text.endswith('```'):
-                    response_text = response_text[:-3]  # Remove ```
+                # Create the content with images and prompt
+                content = image_parts + [prompt]
                 
-                response_text = response_text.strip()
+                # Generate response
+                response = self.model.generate_content(content)
                 
-                result = json.loads(response_text)
-                result["source_filename"] = filename
-                return result
-            except json.JSONDecodeError as e:
-                # If JSON parsing fails, try to extract info from text response
-                return {
-                    "title": "Could not parse JSON response",
-                    "author": "Could not parse JSON response", 
-                    "year": "Could not parse JSON response",
-                    "source_filename": filename,
-                    "raw_response": response.text,
-                    "parse_error": str(e)
-                }
+                # Parse JSON response
+                try:
+                    response_text = response.text.strip()
+                    
+                    # Remove markdown code blocks if present
+                    if response_text.startswith('```json'):
+                        response_text = response_text[7:]  # Remove ```json
+                    if response_text.endswith('```'):
+                        response_text = response_text[:-3]  # Remove ```
+                    
+                    response_text = response_text.strip()
+                    
+                    result = json.loads(response_text)
+                    result["source_filename"] = filename
+                    return result
+                except json.JSONDecodeError as e:
+                    # If JSON parsing fails, try to extract info from text response
+                    return {
+                        "title": "Could not parse JSON response",
+                        "author": "Could not parse JSON response", 
+                        "year": "Could not parse JSON response",
+                        "source_filename": filename,
+                        "raw_response": response.text,
+                        "parse_error": str(e)
+                    }
+                    
+            except Exception as e:
+                error_str = str(e)
                 
-        except Exception as e:
-            return {
-                "error": f"API call failed: {str(e)}",
-                "source_filename": filename
-            }
+                # Check if it's a rate limit error
+                if "429" in error_str or "quota" in error_str.lower() or "rate" in error_str.lower():
+                    if attempt < max_retries - 1:
+                        # Calculate delay with exponential backoff
+                        delay = base_delay * (2 ** attempt)
+                        print(f"⏳ Rate limit hit for {filename}. Waiting {delay} seconds before retry {attempt + 1}/{max_retries}...")
+                        time.sleep(delay)
+                        continue
+                    else:
+                        return {
+                            "error": f"Rate limit exceeded after {max_retries} attempts: {error_str}",
+                            "source_filename": filename
+                        }
+                else:
+                    # For other errors, don't retry
+                    return {
+                        "error": f"API call failed: {error_str}",
+                        "source_filename": filename
+                    }
+        
+        return {
+            "error": f"Failed after {max_retries} attempts",
+            "source_filename": filename
+        }
     
     def process_pdf(self, pdf_path: str, rename_files: bool = True) -> Dict[str, Any]:
         """Process a single PDF file"""
@@ -226,7 +254,7 @@ class PDFMetadataExtractor:
         return metadata
     
     def process_directory(self, directory_path: str) -> List[Dict[str, Any]]:
-        """Process all PDF files in a directory"""
+        """Process all PDF files in a directory with rate limiting"""
         results = []
         pdf_files = list(Path(directory_path).glob("*.pdf"))
         
@@ -234,9 +262,20 @@ class PDFMetadataExtractor:
             print(f"No PDF files found in {directory_path}")
             return results
         
-        for pdf_file in pdf_files:
+        print(f"🔍 Found {len(pdf_files)} PDF files to process")
+        print("⏰ Rate limiting: 6 seconds between API calls to respect Gemini's 10 requests/minute limit")
+        
+        for i, pdf_file in enumerate(pdf_files, 1):
+            print(f"\n🔄 Processing file {i}/{len(pdf_files)} at {datetime.now().strftime('%H:%M:%S')}")
+            
             result = self.process_pdf(str(pdf_file))
             results.append(result)
+            
+            # Add delay between API calls to respect rate limits (except for last file)
+            if i < len(pdf_files):
+                if 'error' not in result:  # Only delay if we successfully made an API call
+                    print("⏳ Waiting 6 seconds to respect API rate limits...")
+                    time.sleep(6)  # 6 seconds = 10 requests per minute
         
         return results
 
