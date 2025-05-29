@@ -1,4 +1,5 @@
 #!/usr/bin/env python3
+# -*- coding: utf-8 -*-
 """
 PDF Metadata Extractor using Google Gemini API
 Extracts year of publication, author, and title from PDF documents
@@ -14,6 +15,14 @@ import re
 import shutil
 import time
 from datetime import datetime
+
+# Import configuration constants
+from config import (
+    DEFAULT_MAX_PAGES, DEFAULT_DPI, DEFAULT_MAX_FILENAME_LENGTH,
+    DEFAULT_MAX_RETRIES, DEFAULT_RATE_LIMIT_DELAY, DEFAULT_RETRY_BASE_DELAY,
+    GEMINI_MODEL, DEFAULT_SOURCE_DIR, DEFAULT_OUTPUT_FILE,
+    API_KEY_SETUP_INSTRUCTIONS
+)
 
 try:
     from pdf2image import convert_from_path
@@ -31,7 +40,7 @@ class PDFMetadataExtractor:
     def __init__(self, api_key: str):
         """Initialize the extractor with Gemini API key"""
         genai.configure(api_key=api_key)
-        self.model = genai.GenerativeModel('gemini-2.0-flash-exp')
+        self.model = genai.GenerativeModel(GEMINI_MODEL)
     
     def sanitize_filename(self, text: str) -> str:
         """Sanitize text for use in filename"""
@@ -45,7 +54,7 @@ class PDFMetadataExtractor:
         # Remove special characters that might cause issues
         text = re.sub(r'[†‡§¶#@$%^&*+={}[\]~`]', '', text)
         # Limit length to avoid filesystem issues
-        text = text.strip()[:100]
+        text = text.strip()[:DEFAULT_MAX_FILENAME_LENGTH]
         return text
     
     def create_new_filename(self, metadata: Dict[str, Any]) -> str:
@@ -115,11 +124,11 @@ class PDFMetadataExtractor:
                 "old_filename": Path(old_path).name
             }
         
-    def pdf_to_images(self, pdf_path: str, max_pages: int = 3) -> List[Image.Image]:
+    def pdf_to_images(self, pdf_path: str, max_pages: int = DEFAULT_MAX_PAGES) -> List[Image.Image]:
         """Convert PDF to images, focusing on first few pages"""
         try:
             # Convert first few pages to images (title page usually contains metadata)
-            images = convert_from_path(pdf_path, first_page=1, last_page=max_pages, dpi=200)
+            images = convert_from_path(pdf_path, first_page=1, last_page=max_pages, dpi=DEFAULT_DPI)
             return images
         except Exception as e:
             print(f"Error converting PDF {pdf_path}: {e}")
@@ -159,8 +168,8 @@ class PDFMetadataExtractor:
         Analyze carefully and extract the most accurate information possible.
         """
         
-        max_retries = 3
-        base_delay = 60  # Base delay for rate limiting (60 seconds)
+        max_retries = DEFAULT_MAX_RETRIES
+        base_delay = DEFAULT_RETRY_BASE_DELAY  # Base delay for rate limiting (60 seconds)
         
         for attempt in range(max_retries):
             try:
@@ -265,14 +274,15 @@ class PDFMetadataExtractor:
     def process_directory(self, directory_path: str) -> List[Dict[str, Any]]:
         """Process all PDF files in a directory with rate limiting"""
         results = []
-        pdf_files = list(Path(directory_path).glob("*.pdf"))
+        directory = Path(directory_path)
+        pdf_files = list(directory.glob("*.pdf")) + list(directory.glob("*.PDF"))
         
         if not pdf_files:
             print(f"No PDF files found in {directory_path}")
             return results
         
         print(f"🔍 Found {len(pdf_files)} PDF files to process")
-        print("⏰ Rate limiting: 6 seconds between API calls to respect Gemini's 10 requests/minute limit")
+        print(f"⏰ Rate limiting: {DEFAULT_RATE_LIMIT_DELAY} seconds between API calls to respect Gemini's rate limits")
         
         for i, pdf_file in enumerate(pdf_files, 1):
             print(f"\n🔄 Processing file {i}/{len(pdf_files)} at {datetime.now().strftime('%H:%M:%S')}")
@@ -283,13 +293,21 @@ class PDFMetadataExtractor:
             # Add delay between API calls to respect rate limits (except for last file)
             if i < len(pdf_files):
                 if 'error' not in result:  # Only delay if we successfully made an API call
-                    print("⏳ Waiting 6 seconds to respect API rate limits...")
-                    time.sleep(6)  # 6 seconds = 10 requests per minute
+                    print(f"⏳ Waiting {DEFAULT_RATE_LIMIT_DELAY} seconds to respect API rate limits...")
+                    time.sleep(DEFAULT_RATE_LIMIT_DELAY)
         
         return results
 
 
 def main():
+    """
+    Main execution function for PDF metadata extraction.
+    
+    Coordinates the entire extraction process including:
+    - Environment setup and API key validation
+    - PDF processing and metadata extraction
+    - File renaming and result storage
+    """
     # Load environment variables from .env file
     load_dotenv()
     
@@ -301,10 +319,8 @@ def main():
         print("1. Make sure you have a .env file in this directory")
         print("2. It should contain: GEMINI_API_KEY=your-actual-api-key")
         print("\n💡 If you don't have an API key yet:")
-        print("1. Visit: https://aistudio.google.com/app/apikey")
-        print("2. Sign in with your Google account")
-        print("3. Click 'Create API Key'")
-        print("4. Copy the key and add it to your .env file")
+        for instruction in API_KEY_SETUP_INSTRUCTIONS:
+            print(instruction)
         return
     
     # Initialize extractor
@@ -317,7 +333,7 @@ def main():
         return
     
     # Process PDFs in src directory
-    src_dir = "./src"
+    src_dir = DEFAULT_SOURCE_DIR
     if not os.path.exists(src_dir):
         print(f"❌ Directory {src_dir} does not exist")
         return
@@ -364,7 +380,7 @@ def main():
     print(f"📝 Renamed {renamed_files} files")
     
     # Save results to JSON file
-    output_file = "pdf_metadata_results.json"
+    output_file = DEFAULT_OUTPUT_FILE
     with open(output_file, 'w', encoding='utf-8') as f:
         json.dump(results, f, indent=2, ensure_ascii=False)
     

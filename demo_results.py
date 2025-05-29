@@ -1,13 +1,19 @@
 #!/usr/bin/env python3
+# -*- coding: utf-8 -*-
 """
 Sample output demonstration - shows what results will look like
 """
 
 import json
-from datetime import datetime
+from config import GEMINI_API_KEY_URL, DEFAULT_OUTPUT_FILE
 
 def show_sample_results():
-    """Show what the extraction results would look like"""
+    """
+    Show what the extraction results would look like.
+    
+    Displays sample metadata extraction results without requiring API calls,
+    useful for demonstrating the tool's output format to new users.
+    """
     
     print("🔍 PDF METADATA EXTRACTION - SAMPLE RESULTS")
     print("=" * 60)
@@ -44,7 +50,7 @@ def show_sample_results():
         print(f"📅 Year:   {result['year']}")
         print()
     
-    print("💾 Results will be saved to: pdf_metadata_results.json")
+    print(f"💾 Results will be saved to: {DEFAULT_OUTPUT_FILE}")
     print("📊 Format: JSON with title, author, year, and source filename")
     
     # Show JSON structure
@@ -53,7 +59,7 @@ def show_sample_results():
     
     print("\n" + "=" * 60)
     print("🚀 TO GET STARTED:")
-    print("1. Get your Gemini API key from: https://aistudio.google.com/app/apikey")
+    print(f"1. Get your Gemini API key from: {GEMINI_API_KEY_URL}")
     print("2. Set it: export GEMINI_API_KEY='your-key'")
     print("3. Run: python3 pdf_metadata_extractor.py")
 
