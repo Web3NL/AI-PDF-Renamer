@@ -123,6 +123,7 @@ Positional Arguments:
 Options:
   --output, -o DIR        Output directory for renamed files (default: ./output)
   --results, -r FILE      Results JSON filename (default: pdf_metadata_results.json)
+  --max-pages, -p NUM     Maximum pages to analyze per PDF (default: 2)
   --no-copy              Only extract metadata, don't copy files
   -h, --help             Show help message
 
@@ -130,7 +131,9 @@ Examples:
   python3 src/pdf_metadata_extractor.py
   python3 src/pdf_metadata_extractor.py /path/to/pdfs
   python3 src/pdf_metadata_extractor.py --source ./docs --output ./organized
-  python3 src/pdf_metadata_extractor.py --no-copy  # metadata only
+  python3 src/pdf_metadata_extractor.py --max-pages 1    # Faster, analyze only first page
+  python3 src/pdf_metadata_extractor.py --max-pages 5    # More thorough, analyze first 5 pages
+  python3 src/pdf_metadata_extractor.py --no-copy        # metadata only
 ```
 
 ## 🔧 Configuration
@@ -139,9 +142,15 @@ Key settings in `src/config.py`:
 
 - **Rate Limiting**: 6 seconds between API calls (respects Gemini limits)
 - **Image Quality**: 200 DPI for optimal OCR accuracy
-- **Page Limit**: Analyzes first 3 pages (title pages contain metadata)
+- **Page Limit**: Analyzes first 2 pages by default (configurable with --max-pages)
 - **Retry Logic**: 3 attempts with exponential backoff for rate limits
 - **Filename Sanitization**: Removes invalid characters, limits length
+
+**Page Analysis Options**:
+- `--max-pages 1`: Fastest, only title page (good for simple papers)
+- `--max-pages 2`: Default, covers most metadata locations
+- `--max-pages 3-5`: More thorough for complex documents with scattered metadata
+- Higher values: Slower and more expensive, rarely needed
 
 ## 🔍 How It Works
 

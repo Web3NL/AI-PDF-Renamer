@@ -168,7 +168,7 @@ class PDFMetadataExtractor:
         image_bytes = buffer.getvalue()
         return base64.b64encode(image_bytes).decode()
     
-    def extract_metadata_from_images(self, images: List[Image.Image], filename: str) -> Dict[str, Any]:
+    def extract_metadata_from_images(self, images: List[Image.Image], filename: str, max_pages: int = None) -> Dict[str, Any]:
         """Extract metadata using Gemini API with retry logic for rate limits"""
         if not images:
             return {"error": "No images to process"}
@@ -202,7 +202,9 @@ class PDFMetadataExtractor:
             try:
                 # Prepare image data for Gemini API
                 image_parts = []
-                for i, image in enumerate(images[:2]):  # Use first 2 pages maximum
+                # Use all available images up to max_pages, with fallback to 2
+                max_images = max_pages if max_pages is not None else min(len(images), 2)
+                for i, image in enumerate(images[:max_images]):
                     image_parts.append({
                         "mime_type": "image/png",
                         "data": self.image_to_base64(image)
@@ -268,14 +270,14 @@ class PDFMetadataExtractor:
             "source_filename": filename
         }
     
-    def process_pdf(self, pdf_path: str, output_dir: str = None, copy_files: bool = True) -> Dict[str, Any]:
+    def process_pdf(self, pdf_path: str, output_dir: str = None, copy_files: bool = True, max_pages: int = DEFAULT_MAX_PAGES) -> Dict[str, Any]:
         """Process a single PDF file"""
         print(f"Processing: {pdf_path}")
         
         filename = os.path.basename(pdf_path)
         
         # Convert PDF to images
-        images = self.pdf_to_images(pdf_path)
+        images = self.pdf_to_images(pdf_path, max_pages)
         if not images:
             return {
                 "error": "Failed to convert PDF to images",
@@ -283,7 +285,7 @@ class PDFMetadataExtractor:
             }
         
         # Extract metadata
-        metadata = self.extract_metadata_from_images(images, filename)
+        metadata = self.extract_metadata_from_images(images, filename, max_pages)
         
         # If extraction was successful and copy_files is True, copy the file
         if copy_files and output_dir and 'error' not in metadata:
@@ -297,7 +299,7 @@ class PDFMetadataExtractor:
         
         return metadata
     
-    def process_directory(self, directory_path: str, output_dir: str = DEFAULT_OUTPUT_DIR, results_file_path: str = None) -> List[Dict[str, Any]]:
+    def process_directory(self, directory_path: str, output_dir: str = DEFAULT_OUTPUT_DIR, results_file_path: str = None, max_pages: int = DEFAULT_MAX_PAGES) -> List[Dict[str, Any]]:
         """Process all PDF files in a directory with rate limiting and incremental results saving"""
         results = []
         directory = Path(directory_path)
@@ -323,7 +325,7 @@ class PDFMetadataExtractor:
             
             # Determine if we should copy files based on whether output_dir is provided
             copy_files = output_dir is not None
-            result = self.process_pdf(str(pdf_file), output_dir, copy_files)
+            result = self.process_pdf(str(pdf_file), output_dir, copy_files, max_pages)
             results.append(result)
             
             # Save result incrementally to JSON file if specified
@@ -349,9 +351,11 @@ def parse_arguments():
         formatter_class=argparse.RawDescriptionHelpFormatter,
         epilog="""
 Examples:
-  python3 pdf_metadata_extractor.py                    # Process PDFs in current directory
-  python3 pdf_metadata_extractor.py /path/to/pdfs     # Process PDFs in specified directory
+  python3 pdf_metadata_extractor.py                     # Process PDFs in current directory
+  python3 pdf_metadata_extractor.py /path/to/pdfs      # Process PDFs in specified directory
   python3 pdf_metadata_extractor.py --source ./docs --output ./results
+  python3 pdf_metadata_extractor.py --max-pages 1      # Only analyze first page (faster)
+  python3 pdf_metadata_extractor.py --max-pages 5      # Analyze first 5 pages (slower but more thorough)
   cd /my/pdf/folder && python3 /path/to/pdf_metadata_extractor.py
         """
     )
@@ -381,6 +385,13 @@ Examples:
         help='Only extract metadata, do not copy files'
     )
     
+    parser.add_argument(
+        '--max-pages', '-p',
+        type=int,
+        default=DEFAULT_MAX_PAGES,
+        help=f'Maximum number of pages to analyze per PDF (default: {DEFAULT_MAX_PAGES})'
+    )
+    
     return parser.parse_args()
 
 
@@ -396,6 +407,21 @@ def main():
     """
     # Parse command-line arguments
     args = parse_arguments()
+    
+    # Validate max_pages argument
+    if args.max_pages < 1:
+        print("❌ ERROR: --max-pages must be at least 1")
+        return
+    if args.max_pages > 10:
+        print("⚠️  WARNING: --max-pages > 10 may be slow and expensive for API costs")
+        try:
+            confirm = input("Continue anyway? (y/N): ").strip().lower()
+            if confirm not in ['y', 'yes']:
+                print("Operation cancelled.")
+                return
+        except (EOFError, KeyboardInterrupt):
+            print("\nOperation cancelled.")
+            return
     
     # Load environment variables from .env file
     load_dotenv()
@@ -436,6 +462,7 @@ def main():
         print(f"📂 Output directory: {output_dir}")
     else:
         print("📄 Metadata extraction only (no file copying)")
+    print(f"📄 Analyzing first {args.max_pages} pages of each PDF")
     
     # Prepare results file path if specified
     results_file_path = None
@@ -444,7 +471,7 @@ def main():
         # Even with --no-copy, we still create output directory for results
         results_file_path = os.path.join(output_dir, args.results)
     
-    results = extractor.process_directory(source_dir, output_dir if not args.no_copy else None, results_file_path)
+    results = extractor.process_directory(source_dir, output_dir if not args.no_copy else None, results_file_path, args.max_pages)
     
     if not results:
         print("❌ No PDF files found or processed successfully")

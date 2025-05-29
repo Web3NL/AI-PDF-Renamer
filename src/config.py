@@ -9,7 +9,7 @@ GEMINI_API_KEY_URL = "https://aistudio.google.com/app/apikey"
 GEMINI_MODEL = "gemini-2.0-flash-exp"
 
 # Processing Configuration
-DEFAULT_MAX_PAGES = 3
+DEFAULT_MAX_PAGES = 2  # Reduced from 3 - most metadata is on first 2 pages
 DEFAULT_DPI = 200
 DEFAULT_MAX_FILENAME_LENGTH = 100
 DEFAULT_MAX_RETRIES = 3
