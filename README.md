@@ -1,4 +1,4 @@
-# PDF Metadata Extractor & Rename Tool
+# AI-PDF-Renamer
 
 🔍 **Automatically extract metadata from PDF files and rename them using AI**
 
