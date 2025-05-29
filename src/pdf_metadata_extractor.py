@@ -43,6 +43,36 @@ class PDFMetadataExtractor:
         genai.configure(api_key=api_key)
         self.model = genai.GenerativeModel(GEMINI_MODEL)
     
+    def update_results_file(self, results_file_path: str, new_result: Dict[str, Any]) -> bool:
+        """Safely update the JSON results file with a new result"""
+        try:
+            # Ensure the directory exists
+            os.makedirs(os.path.dirname(results_file_path), exist_ok=True)
+            
+            # Read existing results or create new list
+            existing_results = []
+            if os.path.exists(results_file_path):
+                try:
+                    with open(results_file_path, 'r', encoding='utf-8') as f:
+                        existing_results = json.load(f)
+                    if not isinstance(existing_results, list):
+                        existing_results = []
+                except (json.JSONDecodeError, IOError):
+                    # If file is corrupted or unreadable, start fresh
+                    existing_results = []
+            
+            # Add the new result
+            existing_results.append(new_result)
+            
+            # Write back to file
+            with open(results_file_path, 'w', encoding='utf-8') as f:
+                json.dump(existing_results, f, indent=2, ensure_ascii=False)
+            
+            return True
+        except Exception as e:
+            print(f"⚠️  Failed to update results file: {e}")
+            return False
+    
     def sanitize_filename(self, text: str) -> str:
         """Sanitize text for use in filename"""
         if not text or text == "Not found":
@@ -267,8 +297,8 @@ class PDFMetadataExtractor:
         
         return metadata
     
-    def process_directory(self, directory_path: str, output_dir: str = DEFAULT_OUTPUT_DIR) -> List[Dict[str, Any]]:
-        """Process all PDF files in a directory with rate limiting"""
+    def process_directory(self, directory_path: str, output_dir: str = DEFAULT_OUTPUT_DIR, results_file_path: str = None) -> List[Dict[str, Any]]:
+        """Process all PDF files in a directory with rate limiting and incremental results saving"""
         results = []
         directory = Path(directory_path)
         pdf_files = list(directory.glob("*.pdf")) + list(directory.glob("*.PDF"))
@@ -282,6 +312,10 @@ class PDFMetadataExtractor:
             print(f"📁 Output directory: {os.path.abspath(output_dir)}")
         else:
             print("📄 Metadata extraction only (no file copying)")
+        
+        if results_file_path:
+            print(f"💾 Results will be saved incrementally to: {os.path.abspath(results_file_path)}")
+        
         print(f"⏰ Rate limiting: {DEFAULT_RATE_LIMIT_DELAY} seconds between API calls to respect Gemini's rate limits")
         
         for i, pdf_file in enumerate(pdf_files, 1):
@@ -291,6 +325,13 @@ class PDFMetadataExtractor:
             copy_files = output_dir is not None
             result = self.process_pdf(str(pdf_file), output_dir, copy_files)
             results.append(result)
+            
+            # Save result incrementally to JSON file if specified
+            if results_file_path:
+                if self.update_results_file(results_file_path, result):
+                    print(f"📝 Result saved to {os.path.basename(results_file_path)}")
+                else:
+                    print(f"⚠️  Failed to save result for {result.get('source_filename', 'unknown file')}")
             
             # Add delay between API calls to respect rate limits (except for last file)
             if i < len(pdf_files):
@@ -396,7 +437,14 @@ def main():
     else:
         print("📄 Metadata extraction only (no file copying)")
     
-    results = extractor.process_directory(source_dir, output_dir if not args.no_copy else None)
+    # Prepare results file path if specified
+    results_file_path = None
+    if args.results:
+        # Always save results in output directory to keep source directory clean
+        # Even with --no-copy, we still create output directory for results
+        results_file_path = os.path.join(output_dir, args.results)
+    
+    results = extractor.process_directory(source_dir, output_dir if not args.no_copy else None, results_file_path)
     
     if not results:
         print("❌ No PDF files found or processed successfully")
@@ -434,19 +482,9 @@ def main():
     if not args.no_copy:
         print(f"📝 Copied {copied_files} files to output directory")
     
-    # Save results to JSON file
-    if args.results:
-        # Always save results in output directory to keep source directory clean
-        # Even with --no-copy, we still create output directory for results
-        results_path = os.path.join(output_dir, args.results)
-        
-        # Ensure output directory exists
-        os.makedirs(os.path.dirname(results_path), exist_ok=True)
-        
-        with open(results_path, 'w', encoding='utf-8') as f:
-            json.dump(results, f, indent=2, ensure_ascii=False)
-        
-        print(f"💾 Results saved to: {results_path}")
+    # Results are now saved incrementally during processing
+    if args.results and results_file_path:
+        print(f"💾 All results saved incrementally to: {results_file_path}")
     
     print("\n🎉 Processing complete!")
 
