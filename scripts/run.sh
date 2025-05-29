@@ -22,20 +22,22 @@ if [ ! -f "src/pdf_metadata_extractor.py" ]; then
     exit 1
 fi
 
-# Check if src directory exists
-if [ ! -d "src" ]; then
-    echo "❌ ERROR: src directory not found"
-    echo "Please create a src directory and add PDF files to process"
-    exit 1
+# Check if data directory exists (default source directory)
+if [ ! -d "data" ]; then
+    echo "⚠️  Source directory 'data' not found"
+    echo "Creating data directory for PDF files..."
+    mkdir -p data
 fi
 
-# Count PDF files in src directory
-pdf_count=$(find src -name "*.pdf" -o -name "*.PDF" | wc -l | tr -d ' ')
-echo "🔍 Found $pdf_count PDF files in src directory"
+# Count PDF files in data directory
+pdf_count=$(find data -name "*.pdf" -o -name "*.PDF" | wc -l | tr -d ' ')
+echo "🔍 Found $pdf_count PDF files in data directory"
 
 if [ "$pdf_count" -eq 0 ]; then
-    echo "⚠️  No PDF files found in src directory"
-    echo "Please add PDF files to the src directory and try again"
+    echo "⚠️  No PDF files found in data directory"
+    echo "Please add PDF files to the data directory and try again"
+    echo "Or specify a different source directory with:"
+    echo "   python3 src/pdf_metadata_extractor.py /path/to/your/pdfs"
     exit 0
 fi
 
@@ -50,8 +52,8 @@ echo "▶️  Running PDF metadata extractor..."
 echo "━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━"
 echo ""
 
-# Run the Python script
-python3 src/pdf_metadata_extractor.py
+# Run the Python script with data directory as default source
+python3 src/pdf_metadata_extractor.py data
 
 # Check the exit status
 exit_status=$?
