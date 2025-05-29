@@ -278,13 +278,18 @@ class PDFMetadataExtractor:
             return results
         
         print(f"🔍 Found {len(pdf_files)} PDF files to process")
-        print(f"📁 Output directory: {os.path.abspath(output_dir)}")
+        if output_dir:
+            print(f"📁 Output directory: {os.path.abspath(output_dir)}")
+        else:
+            print("📄 Metadata extraction only (no file copying)")
         print(f"⏰ Rate limiting: {DEFAULT_RATE_LIMIT_DELAY} seconds between API calls to respect Gemini's rate limits")
         
         for i, pdf_file in enumerate(pdf_files, 1):
             print(f"\n🔄 Processing file {i}/{len(pdf_files)} at {datetime.now().strftime('%H:%M:%S')}")
             
-            result = self.process_pdf(str(pdf_file), output_dir)
+            # Determine if we should copy files based on whether output_dir is provided
+            copy_files = output_dir is not None
+            result = self.process_pdf(str(pdf_file), output_dir, copy_files)
             results.append(result)
             
             # Add delay between API calls to respect rate limits (except for last file)
@@ -431,13 +436,9 @@ def main():
     
     # Save results to JSON file
     if args.results:
-        # Determine where to save results file
-        if args.no_copy:
-            # Save in source directory if not copying files
-            results_path = os.path.join(source_dir, args.results)
-        else:
-            # Save in output directory if copying files
-            results_path = os.path.join(output_dir, args.results)
+        # Always save results in output directory to keep source directory clean
+        # Even with --no-copy, we still create output directory for results
+        results_path = os.path.join(output_dir, args.results)
         
         # Ensure output directory exists
         os.makedirs(os.path.dirname(results_path), exist_ok=True)
