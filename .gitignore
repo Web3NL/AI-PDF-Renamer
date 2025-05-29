@@ -39,7 +39,5 @@ env/
 Thumbs.db
 
 # Output files
-pdf_metadata_results.json
+output/
 *.log
-
-src

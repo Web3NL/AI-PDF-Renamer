@@ -16,9 +16,11 @@ DEFAULT_MAX_RETRIES = 3
 DEFAULT_RATE_LIMIT_DELAY = 6  # seconds between API calls
 DEFAULT_RETRY_BASE_DELAY = 60  # base delay for exponential backoff
 
-# Directory Configuration
-DEFAULT_SOURCE_DIR = "./src"
+# Directory Configuration (relative to project root)
+DEFAULT_SOURCE_DIR = "./data"  # For actual user PDFs
+DEFAULT_OUTPUT_DIR = "./output"
 DEFAULT_OUTPUT_FILE = "pdf_metadata_results.json"
+TEST_SOURCE_DIR = "./sample_pdf"
 
 # File Extensions
 PDF_EXTENSIONS = ["*.pdf", "*.PDF"]

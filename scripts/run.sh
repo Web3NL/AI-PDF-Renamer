@@ -16,9 +16,9 @@ if ! command -v python3 &> /dev/null; then
 fi
 
 # Check if the main script exists
-if [ ! -f "pdf_metadata_extractor.py" ]; then
-    echo "❌ ERROR: pdf_metadata_extractor.py not found"
-    echo "Make sure you're running this script from the correct directory"
+if [ ! -f "src/pdf_metadata_extractor.py" ]; then
+    echo "❌ ERROR: src/pdf_metadata_extractor.py not found"
+    echo "Make sure you're running this script from the project root directory"
     exit 1
 fi
 
@@ -51,7 +51,7 @@ echo "━━━━━━━━━━━━━━━━━━━━━━━━�
 echo ""
 
 # Run the Python script
-python3 pdf_metadata_extractor.py
+python3 src/pdf_metadata_extractor.py
 
 # Check the exit status
 exit_status=$?

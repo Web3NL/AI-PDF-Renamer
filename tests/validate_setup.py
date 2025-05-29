@@ -9,6 +9,9 @@ import os
 import sys
 from pathlib import Path
 
+# Add src directory to path for imports
+sys.path.append(os.path.join(os.path.dirname(__file__), '..', 'src'))
+
 try:
     from dotenv import load_dotenv
     load_dotenv()
@@ -18,7 +21,8 @@ except ImportError:
 from config import (
     API_KEY_SETUP_INSTRUCTIONS, 
     DEPENDENCY_INSTALL_INSTRUCTIONS,
-    DEFAULT_SOURCE_DIR
+    DEFAULT_SOURCE_DIR,
+    DEFAULT_OUTPUT_DIR
 )
 
 
@@ -87,13 +91,19 @@ def check_api_key():
 def check_directory_structure():
     """Check if required directories exist."""
     src_dir = Path(DEFAULT_SOURCE_DIR)
+    output_dir = Path(DEFAULT_OUTPUT_DIR)
+    
     if not src_dir.exists():
         print(f"⚠️  Source directory {src_dir} doesn't exist")
         print(f"   Creating {src_dir}...")
         src_dir.mkdir(exist_ok=True)
     
+    if not output_dir.exists():
+        print(f"📁 Output directory {output_dir} will be created when needed")
+    
     pdf_files = list(src_dir.glob("*.pdf")) + list(src_dir.glob("*.PDF"))
     print(f"📁 Source directory: {src_dir.absolute()}")
+    print(f"📂 Output directory: {output_dir.absolute()}")
     print(f"📄 PDF files found: {len(pdf_files)}")
     
     return True

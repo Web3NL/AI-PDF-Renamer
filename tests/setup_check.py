@@ -7,6 +7,9 @@ Setup script to check dependencies and guide user through API setup
 import os
 import sys
 
+# Add src directory to path for imports
+sys.path.append(os.path.join(os.path.dirname(__file__), '..', 'src'))
+
 try:
     from dotenv import load_dotenv
     load_dotenv()

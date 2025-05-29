@@ -5,6 +5,12 @@ Sample output demonstration - shows what results will look like
 """
 
 import json
+import os
+import sys
+
+# Add src directory to path for imports
+sys.path.append(os.path.join(os.path.dirname(__file__), '..', 'src'))
+
 from config import GEMINI_API_KEY_URL, DEFAULT_OUTPUT_FILE
 
 def show_sample_results():
@@ -17,7 +23,8 @@ def show_sample_results():
     
     print("🔍 PDF METADATA EXTRACTION - SAMPLE RESULTS")
     print("=" * 60)
-    print("This is what your results will look like once you set up your API key:\n")
+    print("This is what your results will look like once you set up your API key:")
+    print("Source files will remain unchanged, and renamed copies will be created in the output/ directory.\n")
     
     # Sample results based on the PDF filenames
     sample_results = [

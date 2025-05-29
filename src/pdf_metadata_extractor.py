@@ -7,6 +7,7 @@ Extracts year of publication, author, and title from PDF documents
 
 import os
 import json
+import argparse
 from pathlib import Path
 from typing import List, Dict, Any
 import base64
@@ -20,7 +21,7 @@ from datetime import datetime
 from config import (
     DEFAULT_MAX_PAGES, DEFAULT_DPI, DEFAULT_MAX_FILENAME_LENGTH,
     DEFAULT_MAX_RETRIES, DEFAULT_RATE_LIMIT_DELAY, DEFAULT_RETRY_BASE_DELAY,
-    GEMINI_MODEL, DEFAULT_SOURCE_DIR, DEFAULT_OUTPUT_FILE,
+    GEMINI_MODEL, DEFAULT_SOURCE_DIR, DEFAULT_OUTPUT_DIR, DEFAULT_OUTPUT_FILE,
     API_KEY_SETUP_INSTRUCTIONS
 )
 
@@ -82,46 +83,42 @@ class PDFMetadataExtractor:
         new_filename = f"{year} - {author} - {title}.pdf"
         return new_filename
     
-    def rename_pdf_file(self, old_path: str, metadata: Dict[str, Any]) -> Dict[str, str]:
-        """Rename PDF file based on extracted metadata"""
+    def copy_pdf_file(self, source_path: str, metadata: Dict[str, Any], output_dir: str) -> Dict[str, str]:
+        """Copy PDF file to output directory with new name based on extracted metadata"""
         try:
-            old_file = Path(old_path)
-            directory = old_file.parent
+            source_file = Path(source_path)
+            output_directory = Path(output_dir)
+            
+            # Create output directory if it doesn't exist
+            output_directory.mkdir(exist_ok=True)
             
             # Create new filename
             new_filename = self.create_new_filename(metadata)
-            new_path = directory / new_filename
+            output_path = output_directory / new_filename
             
-            # Avoid overwriting existing files
+            # Avoid overwriting existing files in output directory
             counter = 1
-            original_new_path = new_path
-            while new_path.exists() and new_path != old_file:
-                stem = original_new_path.stem
-                new_path = directory / f"{stem} ({counter}).pdf"
+            original_output_path = output_path
+            while output_path.exists():
+                stem = original_output_path.stem
+                output_path = output_directory / f"{stem} ({counter}).pdf"
                 counter += 1
             
-            # Rename the file
-            if new_path != old_file:
-                shutil.move(str(old_file), str(new_path))
-                return {
-                    "renamed": True,
-                    "old_filename": old_file.name,
-                    "new_filename": new_path.name,
-                    "old_path": str(old_file),
-                    "new_path": str(new_path)
-                }
-            else:
-                return {
-                    "renamed": False,
-                    "reason": "Same filename",
-                    "filename": old_file.name
-                }
+            # Copy the file to output directory
+            shutil.copy2(str(source_file), str(output_path))
+            return {
+                "copied": True,
+                "source_filename": source_file.name,
+                "output_filename": output_path.name,
+                "source_path": str(source_file),
+                "output_path": str(output_path)
+            }
                 
         except Exception as e:
             return {
-                "renamed": False,
+                "copied": False,
                 "error": str(e),
-                "old_filename": Path(old_path).name
+                "source_filename": Path(source_path).name
             }
         
     def pdf_to_images(self, pdf_path: str, max_pages: int = DEFAULT_MAX_PAGES) -> List[Image.Image]:
@@ -241,7 +238,7 @@ class PDFMetadataExtractor:
             "source_filename": filename
         }
     
-    def process_pdf(self, pdf_path: str, rename_files: bool = True) -> Dict[str, Any]:
+    def process_pdf(self, pdf_path: str, output_dir: str = None, copy_files: bool = True) -> Dict[str, Any]:
         """Process a single PDF file"""
         print(f"Processing: {pdf_path}")
         
@@ -258,20 +255,19 @@ class PDFMetadataExtractor:
         # Extract metadata
         metadata = self.extract_metadata_from_images(images, filename)
         
-        # If extraction was successful and rename_files is True, rename the file
-        if rename_files and 'error' not in metadata:
-            rename_result = self.rename_pdf_file(pdf_path, metadata)
-            metadata['rename_info'] = rename_result
+        # If extraction was successful and copy_files is True, copy the file
+        if copy_files and output_dir and 'error' not in metadata:
+            copy_result = self.copy_pdf_file(pdf_path, metadata, output_dir)
+            metadata['copy_info'] = copy_result
             
-            # Update source_filename if file was renamed
-            if rename_result.get('renamed'):
-                metadata['original_filename'] = filename
-                metadata['source_filename'] = rename_result['new_filename']
-                print(f"📝 Renamed: {filename} → {rename_result['new_filename']}")
+            # Update source_filename to show the output filename
+            if copy_result.get('copied'):
+                metadata['output_filename'] = copy_result['output_filename']
+                print(f"📝 Copied: {filename} → {copy_result['output_filename']}")
         
         return metadata
     
-    def process_directory(self, directory_path: str) -> List[Dict[str, Any]]:
+    def process_directory(self, directory_path: str, output_dir: str = DEFAULT_OUTPUT_DIR) -> List[Dict[str, Any]]:
         """Process all PDF files in a directory with rate limiting"""
         results = []
         directory = Path(directory_path)
@@ -282,12 +278,13 @@ class PDFMetadataExtractor:
             return results
         
         print(f"🔍 Found {len(pdf_files)} PDF files to process")
+        print(f"📁 Output directory: {os.path.abspath(output_dir)}")
         print(f"⏰ Rate limiting: {DEFAULT_RATE_LIMIT_DELAY} seconds between API calls to respect Gemini's rate limits")
         
         for i, pdf_file in enumerate(pdf_files, 1):
             print(f"\n🔄 Processing file {i}/{len(pdf_files)} at {datetime.now().strftime('%H:%M:%S')}")
             
-            result = self.process_pdf(str(pdf_file))
+            result = self.process_pdf(str(pdf_file), output_dir)
             results.append(result)
             
             # Add delay between API calls to respect rate limits (except for last file)
@@ -299,15 +296,61 @@ class PDFMetadataExtractor:
         return results
 
 
+def parse_arguments():
+    """Parse command-line arguments."""
+    parser = argparse.ArgumentParser(
+        description="Extract metadata from PDF files using Google Gemini API",
+        formatter_class=argparse.RawDescriptionHelpFormatter,
+        epilog="""
+Examples:
+  python3 pdf_metadata_extractor.py                    # Process PDFs in current directory
+  python3 pdf_metadata_extractor.py /path/to/pdfs     # Process PDFs in specified directory
+  python3 pdf_metadata_extractor.py --source ./docs --output ./results
+  cd /my/pdf/folder && python3 /path/to/pdf_metadata_extractor.py
+        """
+    )
+    
+    parser.add_argument(
+        'source',
+        nargs='?',
+        default='.',
+        help='Source directory containing PDF files (default: current directory)'
+    )
+    
+    parser.add_argument(
+        '--output', '-o',
+        default=DEFAULT_OUTPUT_DIR,
+        help=f'Output directory for renamed files (default: {DEFAULT_OUTPUT_DIR})'
+    )
+    
+    parser.add_argument(
+        '--results', '-r',
+        default=DEFAULT_OUTPUT_FILE,
+        help=f'Results JSON filename (default: {DEFAULT_OUTPUT_FILE})'
+    )
+    
+    parser.add_argument(
+        '--no-copy',
+        action='store_true',
+        help='Only extract metadata, do not copy files'
+    )
+    
+    return parser.parse_args()
+
+
 def main():
     """
     Main execution function for PDF metadata extraction.
     
     Coordinates the entire extraction process including:
+    - Command-line argument parsing
     - Environment setup and API key validation
     - PDF processing and metadata extraction
-    - File renaming and result storage
+    - File copying to output directory and result storage
     """
+    # Parse command-line arguments
+    args = parse_arguments()
+    
     # Load environment variables from .env file
     load_dotenv()
     
@@ -332,16 +375,23 @@ def main():
         print("Check your API key and internet connection")
         return
     
-    # Process PDFs in src directory
-    src_dir = DEFAULT_SOURCE_DIR
-    if not os.path.exists(src_dir):
-        print(f"❌ Directory {src_dir} does not exist")
+    # Resolve paths
+    source_dir = os.path.abspath(args.source)
+    output_dir = os.path.abspath(args.output)
+    
+    # Check if source directory exists
+    if not os.path.exists(source_dir):
+        print(f"❌ Source directory {source_dir} does not exist")
         return
     
     print("🚀 Starting PDF metadata extraction...")
-    print(f"📁 Processing files in: {os.path.abspath(src_dir)}")
+    print(f"📁 Source directory: {source_dir}")
+    if not args.no_copy:
+        print(f"📂 Output directory: {output_dir}")
+    else:
+        print("📄 Metadata extraction only (no file copying)")
     
-    results = extractor.process_directory(src_dir)
+    results = extractor.process_directory(source_dir, output_dir if not args.no_copy else None)
     
     if not results:
         print("❌ No PDF files found or processed successfully")
@@ -353,7 +403,7 @@ def main():
     print("="*80)
     
     successful_extractions = 0
-    renamed_files = 0
+    copied_files = 0
     for i, result in enumerate(results, 1):
         print(f"\n{i}. 📄 File: {result.get('source_filename', 'Unknown')}")
         print("-" * 60)
@@ -366,25 +416,37 @@ def main():
             print(f"👤 Author: {result.get('author', 'Not found')}")
             print(f"📅 Year:   {result.get('year', 'Not found')}")
             
-            # Show rename information
-            rename_info = result.get('rename_info', {})
-            if rename_info.get('renamed'):
-                renamed_files += 1
-                print(f"📝 Renamed from: {rename_info['old_filename']}")
-            elif 'error' in rename_info:
-                print(f"⚠️  Rename failed: {rename_info['error']}")
-            elif rename_info.get('reason') == 'Same filename':
-                print(f"ℹ️  Filename unchanged (already correct format)")
+            # Show copy information
+            if not args.no_copy:
+                copy_info = result.get('copy_info', {})
+                if copy_info.get('copied'):
+                    copied_files += 1
+                    print(f"📝 Copied to: {copy_info['output_filename']}")
+                elif 'error' in copy_info:
+                    print(f"⚠️  Copy failed: {copy_info['error']}")
     
     print(f"\n✅ Successfully processed {successful_extractions}/{len(results)} files")
-    print(f"📝 Renamed {renamed_files} files")
+    if not args.no_copy:
+        print(f"📝 Copied {copied_files} files to output directory")
     
     # Save results to JSON file
-    output_file = DEFAULT_OUTPUT_FILE
-    with open(output_file, 'w', encoding='utf-8') as f:
-        json.dump(results, f, indent=2, ensure_ascii=False)
+    if args.results:
+        # Determine where to save results file
+        if args.no_copy:
+            # Save in source directory if not copying files
+            results_path = os.path.join(source_dir, args.results)
+        else:
+            # Save in output directory if copying files
+            results_path = os.path.join(output_dir, args.results)
+        
+        # Ensure output directory exists
+        os.makedirs(os.path.dirname(results_path), exist_ok=True)
+        
+        with open(results_path, 'w', encoding='utf-8') as f:
+            json.dump(results, f, indent=2, ensure_ascii=False)
+        
+        print(f"💾 Results saved to: {results_path}")
     
-    print(f"💾 Results saved to: {output_file}")
     print("\n🎉 Processing complete!")
 
 
