@@ -44,6 +44,9 @@ if [[ "$CURRENT_BRANCH" != "master" && "$CURRENT_BRANCH" != "main" ]]; then
 fi
 
 # Get current version from git tags (source of truth)
+print_info "Fetching latest tags from remote..."
+git fetch --tags
+
 LATEST_TAG=$(git describe --tags --abbrev=0 2>/dev/null || echo "v0.0.0")
 CURRENT_VERSION=${LATEST_TAG#v}  # Remove 'v' prefix
 print_info "Latest git tag: $LATEST_TAG"

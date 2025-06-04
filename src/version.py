@@ -4,7 +4,7 @@
 Version information for AI-PDF-Renamer
 """
 
-__version__ = "1.1.2"
+__version__ = "1.0.1"
 __version_info__ = tuple(map(int, __version__.split(".")))
 
 # Project metadata
