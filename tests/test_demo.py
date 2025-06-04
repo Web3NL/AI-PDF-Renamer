@@ -22,8 +22,12 @@ except ImportError:
     # dotenv not available, will use system environment variables
     pass
 
-from config import (API_KEY_SETUP_INSTRUCTIONS, DEFAULT_OUTPUT_DIR,
-                    DEFAULT_OUTPUT_FILE, TEST_SOURCE_DIR)
+from config import (
+    API_KEY_SETUP_INSTRUCTIONS,
+    DEFAULT_OUTPUT_DIR,
+    DEFAULT_OUTPUT_FILE,
+    TEST_SOURCE_DIR,
+)
 
 
 def get_unique_output_filename(output_dir: str, base_filename: str) -> str:

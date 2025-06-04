@@ -19,8 +19,12 @@ try:
 except ImportError:
     pass
 
-from config import (API_KEY_SETUP_INSTRUCTIONS, DEFAULT_OUTPUT_DIR,
-                    DEFAULT_SOURCE_DIR, DEPENDENCY_INSTALL_INSTRUCTIONS)
+from config import (
+    API_KEY_SETUP_INSTRUCTIONS,
+    DEFAULT_OUTPUT_DIR,
+    DEFAULT_SOURCE_DIR,
+    DEPENDENCY_INSTALL_INSTRUCTIONS,
+)
 
 
 def check_python_version():
