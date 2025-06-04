@@ -363,7 +363,13 @@ Examples:
     parser.add_argument(
         'source',
         nargs='?',
-        default='.',
+        default=None,
+        help='Source directory containing PDF files (positional argument for backward compatibility)'
+    )
+    
+    parser.add_argument(
+        '--source', '-s',
+        dest='source_flag',
         help='Source directory containing PDF files (default: current directory)'
     )
     
@@ -392,7 +398,17 @@ Examples:
         help=f'Maximum number of pages to analyze per PDF (default: {DEFAULT_MAX_PAGES})'
     )
     
-    return parser.parse_args()
+    args = parser.parse_args()
+    
+    # Resolve source directory: prioritize --source flag, then positional argument, then default
+    if args.source_flag:
+        args.resolved_source = args.source_flag
+    elif args.source:
+        args.resolved_source = args.source
+    else:
+        args.resolved_source = '.'
+    
+    return args
 
 
 def main():
@@ -448,7 +464,7 @@ def main():
         return
     
     # Resolve paths
-    source_dir = os.path.abspath(args.source)
+    source_dir = os.path.abspath(args.resolved_source)
     output_dir = os.path.abspath(args.output)
     
     # Check if source directory exists

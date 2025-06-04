@@ -121,6 +121,7 @@ Positional Arguments:
   SOURCE_DIR              Source directory with PDF files (default: current directory)
 
 Options:
+  --source, -s DIR        Source directory with PDF files (alternative to positional argument)
   --output, -o DIR        Output directory for renamed files (default: ./output)
   --results, -r FILE      Results JSON filename (default: pdf_metadata_results.json)
   --max-pages, -p NUM     Maximum pages to analyze per PDF (default: 2)
