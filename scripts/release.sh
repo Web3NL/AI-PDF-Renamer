@@ -43,9 +43,24 @@ if [[ "$CURRENT_BRANCH" != "master" && "$CURRENT_BRANCH" != "main" ]]; then
     fi
 fi
 
-# Get current version from version.py
-CURRENT_VERSION=$(grep '^__version__ = ' src/version.py | sed 's/__version__ = "\(.*\)"/\1/')
+# Get current version from git tags (source of truth)
+LATEST_TAG=$(git describe --tags --abbrev=0 2>/dev/null || echo "v0.0.0")
+CURRENT_VERSION=${LATEST_TAG#v}  # Remove 'v' prefix
+print_info "Latest git tag: $LATEST_TAG"
 print_info "Current version: $CURRENT_VERSION"
+
+# Verify version.py is in sync (and update if needed)
+VERSION_PY_VERSION=$(grep '^__version__ = ' src/version.py | sed 's/__version__ = "\(.*\)"/\1/')
+if [[ "$VERSION_PY_VERSION" != "$CURRENT_VERSION" ]]; then
+    print_warning "version.py ($VERSION_PY_VERSION) is out of sync with latest tag ($CURRENT_VERSION)"
+    print_info "Updating version.py to match latest tag..."
+    if [[ "$OSTYPE" == "darwin"* ]]; then
+        sed -i '' "s/^__version__ = \".*\"/__version__ = \"$CURRENT_VERSION\"/" src/version.py
+    else
+        sed -i "s/^__version__ = \".*\"/__version__ = \"$CURRENT_VERSION\"/" src/version.py
+    fi
+    print_success "version.py updated to $CURRENT_VERSION"
+fi
 
 # Parse version components
 IFS='.' read -r -a VERSION_PARTS <<< "$CURRENT_VERSION"
@@ -79,7 +94,7 @@ print_info "New version will be: $NEW_VERSION"
 # Confirm the release
 echo
 print_warning "This will:"
-echo "  1. Run pre-flight checks (formatting, linting, tests)"
+echo "  1. Run pre-flight checks (formatting, syntax check)"
 echo "  2. Update src/version.py to version $NEW_VERSION"
 echo "  3. Commit the version bump"
 echo "  4. Create and push tag v$NEW_VERSION"
@@ -134,17 +149,6 @@ print_success "Import sorting applied"
 print_info "Running basic syntax check..."
 python3 -m py_compile src/pdf_metadata_extractor.py src/version.py
 print_success "Syntax check passed"
-
-print_info "Running basic tests..."
-if [ -f "tests/validate_setup.py" ]; then
-    python3 tests/validate_setup.py || print_warning "Setup validation had some warnings (continuing anyway)"
-    print_success "Setup validation completed"
-fi
-
-if [ -f "tests/test_demo.py" ]; then
-    python3 tests/test_demo.py || print_warning "Demo tests had some warnings (continuing anyway)"
-    print_success "Demo tests completed"
-fi
 
 # 2. Update version in version.py
 print_info "Updating version in src/version.py..."

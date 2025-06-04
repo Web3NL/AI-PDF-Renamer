@@ -18,19 +18,11 @@ from pathlib import Path
 from typing import Any, Dict, List
 
 # Import configuration constants
-from config import (
-    API_KEY_SETUP_INSTRUCTIONS,
-    DEFAULT_DPI,
-    DEFAULT_MAX_FILENAME_LENGTH,
-    DEFAULT_MAX_PAGES,
-    DEFAULT_MAX_RETRIES,
-    DEFAULT_OUTPUT_DIR,
-    DEFAULT_OUTPUT_FILE,
-    DEFAULT_RATE_LIMIT_DELAY,
-    DEFAULT_RETRY_BASE_DELAY,
-    DEFAULT_SOURCE_DIR,
-    GEMINI_MODEL,
-)
+from config import (API_KEY_SETUP_INSTRUCTIONS, DEFAULT_DPI,
+                    DEFAULT_MAX_FILENAME_LENGTH, DEFAULT_MAX_PAGES,
+                    DEFAULT_MAX_RETRIES, DEFAULT_OUTPUT_DIR,
+                    DEFAULT_OUTPUT_FILE, DEFAULT_RATE_LIMIT_DELAY,
+                    DEFAULT_RETRY_BASE_DELAY, DEFAULT_SOURCE_DIR, GEMINI_MODEL)
 
 try:
     import google.generativeai as genai
