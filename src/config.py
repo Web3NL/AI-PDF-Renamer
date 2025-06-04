@@ -32,10 +32,10 @@ API_KEY_SETUP_INSTRUCTIONS = [
     "3. Click 'Create API Key'",
     "4. Copy the generated key",
     "5. Set it in your environment:",
-    "   export GEMINI_API_KEY='your-actual-api-key'"
+    "   export GEMINI_API_KEY='your-actual-api-key'",
 ]
 
 DEPENDENCY_INSTALL_INSTRUCTIONS = [
     "pip3 install -r requirements.txt",
-    "brew install poppler"
+    "brew install poppler",
 ]
