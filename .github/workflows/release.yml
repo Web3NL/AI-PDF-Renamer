@@ -1,0 +1,149 @@
+name: Release
+
+on:
+  push:
+    tags:
+      - 'v*'
+
+permissions:
+  contents: write
+
+env:
+  PYTHON_VERSION: '3.11'
+
+jobs:
+  check:
+    name: Pre-release Quality Checks
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      
+      - name: Set up Python
+        uses: actions/setup-python@v4
+        with:
+          python-version: ${{ env.PYTHON_VERSION }}
+          
+      - name: Install dependencies
+        run: |
+          python -m pip install --upgrade pip
+          pip install -r requirements.txt
+          pip install black isort flake8 pytest
+          
+      - name: Check code formatting (black)
+        run: black --check src/ tests/ examples/
+        
+      - name: Check import sorting (isort)
+        run: isort --check-only src/ tests/ examples/
+        
+      - name: Run linting (flake8)
+        run: flake8 src/ tests/ examples/ --max-line-length=88 --extend-ignore=E203,W503
+        
+      - name: Run tests
+        run: |
+          # Run setup validation
+          python tests/validate_setup.py
+          # Run basic functionality tests
+          python tests/test_demo.py
+
+  package:
+    name: Package Source Code
+    needs: check
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      
+      - name: Create source archive
+        run: |
+          # Create a clean source distribution
+          mkdir -p ai-pdf-renamer-source
+          cp -r src/ ai-pdf-renamer-source/
+          cp -r tests/ ai-pdf-renamer-source/
+          cp -r examples/ ai-pdf-renamer-source/
+          cp -r scripts/ ai-pdf-renamer-source/
+          cp requirements.txt README.md ai-pdf-renamer-source/
+          
+          # Create sample directory structure
+          mkdir -p ai-pdf-renamer-source/data
+          mkdir -p ai-pdf-renamer-source/output
+          echo "# Place your PDF files here" > ai-pdf-renamer-source/data/README.md
+          echo "# Output files will be saved here" > ai-pdf-renamer-source/output/README.md
+          
+          # Create archive
+          tar czf ai-pdf-renamer-source.tar.gz ai-pdf-renamer-source/
+          zip -r ai-pdf-renamer-source.zip ai-pdf-renamer-source/
+          
+      - name: Upload source artifacts
+        uses: actions/upload-artifact@v4
+        with:
+          name: ai-pdf-renamer-source
+          path: |
+            ai-pdf-renamer-source.tar.gz
+            ai-pdf-renamer-source.zip
+
+  release:
+    name: Create Release
+    needs: [check, package]
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+          
+      - name: Download all artifacts
+        uses: actions/download-artifact@v4
+        
+      - name: Generate release notes
+        id: release_notes
+        run: |
+          tag_name=${GITHUB_REF#refs/tags/}
+          prev_tag=$(git describe --tags --abbrev=0 ${tag_name}^ 2>/dev/null || echo "")
+          
+          echo "# Release ${tag_name}" > release_notes.md
+          echo "" >> release_notes.md
+          echo "🔍 **AI-Powered PDF metadata extraction and renaming tool**" >> release_notes.md
+          echo "" >> release_notes.md
+          
+          if [[ -n "$prev_tag" ]]; then
+            echo "## Changes since ${prev_tag}" >> release_notes.md
+            echo "" >> release_notes.md
+            git log --pretty=format:"- %s" ${prev_tag}..${tag_name} >> release_notes.md
+          else
+            echo "## Changes" >> release_notes.md
+            echo "" >> release_notes.md
+            git log --pretty=format:"- %s" ${tag_name} >> release_notes.md
+          fi
+          
+          echo "" >> release_notes.md
+          echo "## Installation & Usage" >> release_notes.md
+          echo "" >> release_notes.md
+          echo "### Quick Setup" >> release_notes.md
+          echo "" >> release_notes.md
+          echo "1. Download the source code (\`ai-pdf-renamer-source.tar.gz\` or \`.zip\`)" >> release_notes.md
+          echo "2. Extract and navigate to the directory" >> release_notes.md
+          echo "3. Install dependencies: \`pip install -r requirements.txt\`" >> release_notes.md
+          echo "4. Install system dependencies:" >> release_notes.md
+          echo "   - **macOS**: \`brew install poppler\`" >> release_notes.md
+          echo "   - **Ubuntu/Debian**: \`sudo apt-get install poppler-utils\`" >> release_notes.md
+          echo "5. Set your API key: \`export GEMINI_API_KEY='your-key'\`" >> release_notes.md
+          echo "6. Run: \`python src/pdf_metadata_extractor.py data/\`" >> release_notes.md
+          echo "" >> release_notes.md
+          echo "### Get Your API Key" >> release_notes.md
+          echo "" >> release_notes.md
+          echo "Visit [Google AI Studio](https://aistudio.google.com/app/apikey) to get your free Gemini API key." >> release_notes.md
+          echo "" >> release_notes.md
+          echo "### Files Included" >> release_notes.md
+          echo "" >> release_notes.md
+          echo "- **Source Code**: Complete Python application with all dependencies" >> release_notes.md
+          echo "- **Examples**: Sample usage scripts and demo files" >> release_notes.md
+          echo "- **Tests**: Validation and test scripts" >> release_notes.md
+          echo "- **Documentation**: README with detailed setup instructions" >> release_notes.md
+          
+      - name: Create Release
+        uses: softprops/action-gh-release@v1
+        with:
+          body_path: release_notes.md
+          files: |
+            ai-pdf-renamer-source/ai-pdf-renamer-source.tar.gz
+            ai-pdf-renamer-source/ai-pdf-renamer-source.zip
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
