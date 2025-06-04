@@ -47,7 +47,11 @@ fi
 print_info "Fetching latest tags from remote..."
 git fetch --tags
 
-LATEST_TAG=$(git describe --tags --abbrev=0 2>/dev/null || echo "v0.0.0")
+# Get the latest tag by version number (not just reachable from current commit)
+LATEST_TAG=$(git tag -l | grep '^v[0-9]' | sort -V | tail -1)
+if [[ -z "$LATEST_TAG" ]]; then
+    LATEST_TAG="v0.0.0"
+fi
 CURRENT_VERSION=${LATEST_TAG#v}  # Remove 'v' prefix
 print_info "Latest git tag: $LATEST_TAG"
 print_info "Current version: $CURRENT_VERSION"
