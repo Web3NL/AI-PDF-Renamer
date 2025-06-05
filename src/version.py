@@ -3,7 +3,7 @@
 
 from collections import namedtuple
 
-__version__ = "2.0.0"
+__version__ = "2.0.1"
 __version_info__ = namedtuple("VersionInfo", ["major", "minor", "patch"])(
     *map(int, __version__.split("."))
 )
