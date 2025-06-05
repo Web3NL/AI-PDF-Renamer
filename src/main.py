@@ -24,17 +24,20 @@ except ImportError as e:
 
 class PDFMetadataExtractor:
     """Main orchestrator for PDF metadata extraction and file management"""
+
     def __init__(self, api_key: str):
         """Initialize all processing components"""
         self.pdf_processor = PDFProcessor()
         self.metadata_extractor = MetadataExtractor(api_key)
         self.file_manager = FileManager()
 
-    def _create_error_response(self, error_message: str, filename: str) -> Dict[str, Any]:
+    def _create_error_response(
+        self, error_message: str, filename: str
+    ) -> Dict[str, Any]:
         """Create standardized error response for processing failures"""
         return {
             "title": "Error",
-            "author": "Error", 
+            "author": "Error",
             "year": "Error",
             "source_filename": filename,
             "error": error_message,
@@ -51,13 +54,17 @@ class PDFMetadataExtractor:
         # Validate input parameters
         if not pdf_path or not isinstance(pdf_path, str):
             return self._create_error_response("Invalid PDF path provided", "unknown")
-        
+
         if max_pages < 1:
-            return self._create_error_response("max_pages must be at least 1", os.path.basename(pdf_path))
-        
+            return self._create_error_response(
+                "max_pages must be at least 1", os.path.basename(pdf_path)
+            )
+
         if copy_files and output_dir and not isinstance(output_dir, str):
-            return self._create_error_response("Invalid output directory provided", os.path.basename(pdf_path))
-        
+            return self._create_error_response(
+                "Invalid output directory provided", os.path.basename(pdf_path)
+            )
+
         print(f"Processing: {pdf_path}")
         filename = os.path.basename(pdf_path)
 
@@ -65,14 +72,20 @@ class PDFMetadataExtractor:
 
         images = self.pdf_processor.pdf_to_images(pdf_path, max_pages)
         if not images:
-            return self._create_error_response("Failed to convert PDF to images", filename)
+            return self._create_error_response(
+                "Failed to convert PDF to images", filename
+            )
 
         # Extract metadata using AI
-        metadata = self.metadata_extractor.extract_metadata_from_images(images, filename, self.pdf_processor, max_pages)
+        metadata = self.metadata_extractor.extract_metadata_from_images(
+            images, filename, self.pdf_processor, max_pages
+        )
 
         # Copy file with new name if requested and extraction succeeded
         if copy_files and output_dir and "error" not in metadata:
-            copy_result = self.file_manager.copy_pdf_file(pdf_path, metadata, output_dir)
+            copy_result = self.file_manager.copy_pdf_file(
+                pdf_path, metadata, output_dir
+            )
             metadata["copy_info"] = copy_result
 
             if copy_result.get("copied"):
@@ -93,32 +106,34 @@ class PDFMetadataExtractor:
         if not directory_path or not isinstance(directory_path, str):
             print("❌ ERROR: Invalid directory path provided")
             return []
-        
+
         if max_pages < 1:
             print("❌ ERROR: max_pages must be at least 1")
             return []
-        
+
         # Validate directory exists and is accessible
         directory = Path(directory_path)
         if not directory.exists():
             print(f"❌ ERROR: Directory does not exist: {directory_path}")
             return []
-        
+
         if not directory.is_dir():
             print(f"❌ ERROR: Path is not a directory: {directory_path}")
             return []
-        
+
         if not os.access(directory_path, os.R_OK):
             print(f"❌ ERROR: No read permission for directory: {directory_path}")
             return []
-        
+
         # Find all PDF files in directory
         results = []
         try:
-            pdf_extensions = [ext.replace('*', '') for ext in PDF_EXTENSIONS]
+            pdf_extensions = [ext.replace("*", "") for ext in PDF_EXTENSIONS]
             pdf_files = []
             for f in directory.iterdir():
-                if f.is_file() and f.suffix.lower() in [ext.lower() for ext in pdf_extensions]:
+                if f.is_file() and f.suffix.lower() in [
+                    ext.lower() for ext in pdf_extensions
+                ]:
                     pdf_files.append(f)
         except PermissionError:
             print(f"❌ ERROR: Permission denied accessing directory: {directory_path}")

@@ -16,5 +16,3 @@ DEFAULT_RETRY_BASE_DELAY = 60  # Base delay for exponential backoff
 DEFAULT_OUTPUT_FILE = "pdf_metadata_results.json"  # Results filename
 TEST_SOURCE_DIR = "./sample_pdf"  # Default test directory
 PDF_EXTENSIONS = ["*.pdf", "*.PDF"]  # Supported file extensions
-
-

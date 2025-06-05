@@ -13,6 +13,7 @@ from config import DEFAULT_MAX_FILENAME_LENGTH
 
 class FileManager:
     """Handles file operations, naming, and results storage"""
+
     def update_results_file(
         self, results_file_path: str, new_result: Dict[str, Any]
     ) -> bool:
@@ -64,9 +65,9 @@ class FileManager:
             author = str(author_raw[0]) if author_raw else "Unknown"
         else:
             author = str(author_raw)
-        
+
         author = self.sanitize_filename(author)
-        
+
         # Handle multiple authors - take first one
         if " and " in author.lower():
             author = author.split(" and ")[0].strip()
@@ -77,9 +78,12 @@ class FileManager:
         # Handle comma-separated names (check for suffixes)
         elif author.count(",") > 1:
             parts = author.split(",")
-            if len(parts) >= 2 and not any(suffix in parts[1].strip().lower() for suffix in ["jr", "sr", "ii", "iii", "iv"]):
+            if len(parts) >= 2 and not any(
+                suffix in parts[1].strip().lower()
+                for suffix in ["jr", "sr", "ii", "iii", "iv"]
+            ):
                 author = parts[0].strip()
-            
+
         return author
 
     def create_new_filename(self, metadata: Dict[str, Any]) -> str:
@@ -119,7 +123,9 @@ class FileManager:
             try:
                 resolved_output.relative_to(resolved_output_dir)
             except ValueError:
-                raise ValueError(f"Output path {resolved_output} is outside target directory {resolved_output_dir}")
+                raise ValueError(
+                    f"Output path {resolved_output} is outside target directory {resolved_output_dir}"
+                )
 
             shutil.copy2(str(source_file), str(output_path))
             return {
