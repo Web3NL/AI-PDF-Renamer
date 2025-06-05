@@ -6,7 +6,7 @@ Configuration constants for PDF Metadata Extractor
 
 # API Configuration
 GEMINI_API_KEY_URL = "https://aistudio.google.com/app/apikey"
-GEMINI_MODEL = "gemini-2.0-flash-exp"
+GEMINI_MODEL = "gemini-2.5-flash-preview-05-20"
 
 # Processing Configuration
 DEFAULT_MAX_PAGES = 2  # Reduced from 3 - most metadata is on first 2 pages
