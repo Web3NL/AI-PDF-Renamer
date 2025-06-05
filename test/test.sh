@@ -131,13 +131,16 @@ if [[ -f ".env" ]]; then
     mv .env .env.backup
 fi
 
-# Test that script detects missing API key (use timeout to avoid hanging)
-if timeout 10s ./run.sh "$SAMPLE_DIR" "$TEST_OUTPUT_DIR" --force 2>&1 | grep -q "No .env file found\|Invalid or missing GEMINI_API_KEY"; then
+# Test that script detects missing API key (capture output with timeout)
+OUTPUT_FILE="/tmp/api_test_output"
+(./run.sh "$SAMPLE_DIR" "$TEST_OUTPUT_DIR" --force > "$OUTPUT_FILE" 2>&1 & SCRIPT_PID=$!; sleep 3; kill $SCRIPT_PID 2>/dev/null; wait $SCRIPT_PID 2>/dev/null)
+if grep -q "No .env file found\|Invalid or missing GEMINI_API_KEY" "$OUTPUT_FILE"; then
     print_pass "Properly detects missing API configuration"
 else
     print_fail "Should detect missing API configuration"
     ((FAILED_TESTS++))
 fi
+rm -f "$OUTPUT_FILE"
 
 # Restore .env file
 if [[ -f ".env.backup" ]]; then

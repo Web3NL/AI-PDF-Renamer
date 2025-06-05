@@ -15,27 +15,7 @@ This tool uses Google's Gemini AI to analyze PDF documents, extract key metadata
 
 ## 📋 Quick Start
 
-### 1. Install Dependencies
 
-```bash
-# Install Python packages
-pip3 install -r requirements.txt
-
-# Install system dependencies (macOS)
-brew install poppler
-
-# For Ubuntu/Debian:
-sudo apt-get install poppler-utils
-```
-
-### 2. Get API Key
-
-1. Visit [Google AI Studio](https://aistudio.google.com/app/apikey)
-2. Sign in with your Google account
-3. Click "Create API Key"
-4. Copy the generated key
-
-### 3. Set Up Environment
 
 # Create a .env file:
 echo "GEMINI_API_KEY=your-actual-api-key-here" > .env
