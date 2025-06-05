@@ -1,31 +1,19 @@
 #!/usr/bin/env python3
 # -*- coding: utf-8 -*-
-"""
-Version information for AI-PDF-Renamer
-"""
+
+from collections import namedtuple
 
 __version__ = "1.2.0"
-__version_info__ = tuple(map(int, __version__.split('.')))
-
-# Project metadata
-PROJECT_NAME = "AI-PDF-Renamer"
-PROJECT_DESCRIPTION = (
-    "Automatically extract metadata from PDF files and rename them using AI"
+__version_info__ = namedtuple("VersionInfo", ["major", "minor", "patch"])(
+    *map(int, __version__.split("."))
 )
-PROJECT_URL = "https://github.com/Web3NL/AI-PDF-Renamer"
-AUTHOR = "AI-PDF-Renamer Team"
-LICENSE = "MIT"
 
-
-def get_version():
-    """Return the current version string."""
-    return __version__
-
-
-def get_version_info():
-    """Return the current version as a tuple of integers."""
-    return __version_info__
+__title__ = "AI-PDF-Renamer"
+__description__ = "Automatically extract metadata from PDF files and rename them using AI"
+__url__ = "https://github.com/Web3NL/AI-PDF-Renamer"
+__author__ = "AI-PDF-Renamer Team"
+__license__ = "MIT"
 
 
 if __name__ == "__main__":
-    print(f"{PROJECT_NAME} v{__version__}")
+    print(f"{__title__} v{__version__}")
