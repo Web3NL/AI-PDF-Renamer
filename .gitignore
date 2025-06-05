@@ -39,8 +39,4 @@ env/
 Thumbs.db
 
 # Output files
-output/
-*.log
-
-# User data directory - contains user's PDF files
-data/
+test/test_output/
