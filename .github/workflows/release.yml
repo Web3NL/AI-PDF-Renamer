@@ -31,12 +31,12 @@ jobs:
           
       - name: Apply code formatting
         run: |
-          black src/ tests/ examples/
-          isort src/ tests/ examples/
+          black src/ test/
+          isort src/ test/
           
       - name: Check syntax
         run: |
-          python -m py_compile src/pdf_metadata_extractor.py src/version.py
+          python -m py_compile src/*.py
 
   package:
     name: Package Source Code
@@ -50,10 +50,9 @@ jobs:
           # Create a clean source distribution
           mkdir -p ai-pdf-renamer-source
           cp -r src/ ai-pdf-renamer-source/
-          cp -r tests/ ai-pdf-renamer-source/
-          cp -r examples/ ai-pdf-renamer-source/
+          cp -r test/ ai-pdf-renamer-source/
           cp -r scripts/ ai-pdf-renamer-source/
-          cp requirements.txt README.md ai-pdf-renamer-source/
+          cp requirements.txt README.md run.sh ai-pdf-renamer-source/
           
           # Create sample directory structure
           mkdir -p ai-pdf-renamer-source/data
@@ -118,7 +117,7 @@ jobs:
           echo "   - **macOS**: \`brew install poppler\`" >> release_notes.md
           echo "   - **Ubuntu/Debian**: \`sudo apt-get install poppler-utils\`" >> release_notes.md
           echo "5. Set your API key: \`export GEMINI_API_KEY='your-key'\`" >> release_notes.md
-          echo "6. Run: \`python src/pdf_metadata_extractor.py data/\`" >> release_notes.md
+          echo "6. Run: \`./run.sh data/ output/\`" >> release_notes.md
           echo "" >> release_notes.md
           echo "### Get Your API Key" >> release_notes.md
           echo "" >> release_notes.md
@@ -127,8 +126,8 @@ jobs:
           echo "### Files Included" >> release_notes.md
           echo "" >> release_notes.md
           echo "- **Source Code**: Complete Python application with all dependencies" >> release_notes.md
-          echo "- **Examples**: Sample usage scripts and demo files" >> release_notes.md
-          echo "- **Tests**: Validation and test scripts" >> release_notes.md
+          echo "- **Test Suite**: Validation and test scripts in test/ directory" >> release_notes.md
+          echo "- **Scripts**: Release and utility scripts" >> release_notes.md
           echo "- **Documentation**: README with detailed setup instructions" >> release_notes.md
           
       - name: Create Release

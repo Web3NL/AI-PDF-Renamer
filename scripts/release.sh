@@ -146,15 +146,15 @@ print_info "Installing development dependencies..."
 python3 -m pip install --quiet black isort flake8
 
 print_info "Applying code formatting..."
-python3 -m black src/ tests/ examples/ 2>/dev/null || true
+python3 -m black src/ test/ 2>/dev/null || true
 print_success "Code formatting applied"
 
 print_info "Sorting imports..."
-python3 -m isort src/ tests/ examples/ 2>/dev/null || true
+python3 -m isort src/ test/ 2>/dev/null || true
 print_success "Import sorting applied"
 
 print_info "Running basic syntax check..."
-python3 -m py_compile src/pdf_metadata_extractor.py src/version.py
+python3 -m py_compile src/*.py
 print_success "Syntax check passed"
 
 # 2. Update version in version.py
