@@ -6,26 +6,41 @@ This tool uses Google's Gemini AI to analyze PDF documents, extract key metadata
 
 ## 🚀 Features
 
-- **AI-Powered Extraction**: Uses Google Gemini Vision AI to read PDF content and extract metadata
+- **AI-Powered Extraction**: Uses Google Gemini AI to read PDF content and extract metadata
 - **Smart Renaming**: Automatically renames files in format: `YEAR - AUTHOR - TITLE.pdf`
 - **Batch Processing**: Process entire directories of PDF files at once
 - **Non-Destructive**: Creates renamed copies while preserving original files
 - **Rate Limiting**: Respects API limits with intelligent retry logic
-- **Cross-Platform**: Works on macOS, Linux, and Windows
 
-## 📋 Quick Start
+## 📦 Installation
 
+The `run.sh` script handles environment setup automatically, including virtual environment creation and dependency installation.
 
+## 📖 Usage
 
-# Create a .env file:
+```bash
+# Setup: Get API key from https://aistudio.google.com/app/apikey
 echo "GEMINI_API_KEY=your-actual-api-key-here" > .env
+
+# Basic usage - process PDFs and rename them
+./run.sh ./documents ./organized
+
+# Extract metadata only (no file copying, saves JSON to source dir)
+./run.sh ./documents ./results --no-copy
+
+# Process only first page (faster/cheaper)
+./run.sh ./documents ./organized --max-pages 1
+
+# Automation mode (skip confirmations)
+./run.sh ./documents ./organized --force
+
+# Combine options
+./run.sh ./papers ./organized --max-pages 1 --force
 ```
 
-### 4. Run the Tool
+## 📊 Example Results
 
-### 📊 Example Results
-
-**Input**: `sample.pdf`
+**Input**: `sample.pdf`  
 **Output**: `2015 - André Koch Torres Assis - A new method for inductance calculation.pdf`
 
-
+Results are also saved to `pdf_metadata_results.json` with detailed metadata for each processed file.
