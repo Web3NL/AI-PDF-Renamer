@@ -90,45 +90,15 @@ jobs:
           tag_name=${GITHUB_REF#refs/tags/}
           prev_tag=$(git describe --tags --abbrev=0 ${tag_name}^ 2>/dev/null || echo "")
           
-          echo "# Release ${tag_name}" > release_notes.md
-          echo "" >> release_notes.md
-          echo "🔍 **AI-Powered PDF metadata extraction and renaming tool**" >> release_notes.md
-          echo "" >> release_notes.md
-          
           if [[ -n "$prev_tag" ]]; then
-            echo "## Changes since ${prev_tag}" >> release_notes.md
+            echo "## Changes since ${prev_tag}" > release_notes.md
             echo "" >> release_notes.md
             git log --pretty=format:"- %s" ${prev_tag}..${tag_name} >> release_notes.md
           else
-            echo "## Changes" >> release_notes.md
+            echo "## Changes" > release_notes.md
             echo "" >> release_notes.md
             git log --pretty=format:"- %s" ${tag_name} >> release_notes.md
           fi
-          
-          echo "" >> release_notes.md
-          echo "## Installation & Usage" >> release_notes.md
-          echo "" >> release_notes.md
-          echo "### Quick Setup" >> release_notes.md
-          echo "" >> release_notes.md
-          echo "1. Download the source code (\`ai-pdf-renamer-source.tar.gz\` or \`.zip\`)" >> release_notes.md
-          echo "2. Extract and navigate to the directory" >> release_notes.md
-          echo "3. Install dependencies: \`pip install -r requirements.txt\`" >> release_notes.md
-          echo "4. Install system dependencies:" >> release_notes.md
-          echo "   - **macOS**: \`brew install poppler\`" >> release_notes.md
-          echo "   - **Ubuntu/Debian**: \`sudo apt-get install poppler-utils\`" >> release_notes.md
-          echo "5. Set your API key: \`export GEMINI_API_KEY='your-key'\`" >> release_notes.md
-          echo "6. Run: \`./run.sh data/ output/\`" >> release_notes.md
-          echo "" >> release_notes.md
-          echo "### Get Your API Key" >> release_notes.md
-          echo "" >> release_notes.md
-          echo "Visit [Google AI Studio](https://aistudio.google.com/app/apikey) to get your free Gemini API key." >> release_notes.md
-          echo "" >> release_notes.md
-          echo "### Files Included" >> release_notes.md
-          echo "" >> release_notes.md
-          echo "- **Source Code**: Complete Python application with all dependencies" >> release_notes.md
-          echo "- **Test Suite**: Validation and test scripts in test/ directory" >> release_notes.md
-          echo "- **Scripts**: Release and utility scripts" >> release_notes.md
-          echo "- **Documentation**: README with detailed setup instructions" >> release_notes.md
           
       - name: Create Release
         uses: softprops/action-gh-release@v1
