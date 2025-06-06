@@ -1,8 +1,12 @@
 #!/usr/bin/env python3
 # -*- coding: utf-8 -*-
 
-# Gemini API model version for metadata extraction
-GEMINI_MODEL = "gemini-2.5-flash-preview-05-20"
+# Gemini API model versions for metadata extraction
+GEMINI_MODELS = {
+    "flash": "gemini-2.5-flash-preview-05-20",
+    "pro": "gemini-2.5-pro-preview-06-05"
+}
+DEFAULT_MODEL = "flash"
 
 # PDF processing defaults
 DEFAULT_MAX_PAGES = 2  # Pages to analyze per PDF (cost optimization)

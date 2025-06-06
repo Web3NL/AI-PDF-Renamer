@@ -7,7 +7,7 @@ import time
 from typing import Any, Dict, List
 
 from config import (DEFAULT_MAX_PAGES, DEFAULT_MAX_RETRIES,
-                    DEFAULT_RETRY_BASE_DELAY, GEMINI_MODEL)
+                    DEFAULT_RETRY_BASE_DELAY, GEMINI_MODELS, DEFAULT_MODEL)
 
 try:
     import google.generativeai as genai
@@ -21,10 +21,15 @@ except ImportError as e:
 class MetadataExtractor:
     """Extracts title, author, and year from PDF images using Gemini AI"""
 
-    def __init__(self, api_key: str):
+    def __init__(self, api_key: str, model_name: str = DEFAULT_MODEL):
         """Initialize Gemini API client"""
         genai.configure(api_key=api_key)
-        self.model = genai.GenerativeModel(GEMINI_MODEL)
+        
+        if model_name not in GEMINI_MODELS:
+            raise ValueError(f"Unknown model: {model_name}. Available models: {list(GEMINI_MODELS.keys())}")
+        
+        self.model_name = model_name
+        self.model = genai.GenerativeModel(GEMINI_MODELS[model_name])
 
     def _create_extraction_prompt(self) -> str:
         """Generate prompt for AI metadata extraction"""

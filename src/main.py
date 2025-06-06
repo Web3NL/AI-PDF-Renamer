@@ -9,7 +9,7 @@ from pathlib import Path
 from typing import Any, Dict, List
 
 from config import (DEFAULT_MAX_PAGES, DEFAULT_OUTPUT_FILE,
-                    DEFAULT_RATE_LIMIT_DELAY, PDF_EXTENSIONS)
+                    DEFAULT_RATE_LIMIT_DELAY, PDF_EXTENSIONS, GEMINI_MODELS, DEFAULT_MODEL)
 from file_manager import FileManager
 from metadata_extractor import MetadataExtractor
 from pdf_processor import PDFProcessor
@@ -25,10 +25,10 @@ except ImportError as e:
 class PDFMetadataExtractor:
     """Main orchestrator for PDF metadata extraction and file management"""
 
-    def __init__(self, api_key: str):
+    def __init__(self, api_key: str, model_name: str = None):
         """Initialize all processing components"""
         self.pdf_processor = PDFProcessor()
-        self.metadata_extractor = MetadataExtractor(api_key)
+        self.metadata_extractor = MetadataExtractor(api_key, model_name)
         self.file_manager = FileManager()
 
     def _create_error_response(
@@ -206,6 +206,7 @@ Examples:
   python3 main.py /path/to/pdfs /path/to/output
   python3 main.py ./data ./output --max-pages 1
   python3 main.py /docs /results --no-copy
+  python3 main.py ./papers ./output --model pro
         """,
     )
 
@@ -237,6 +238,13 @@ Examples:
         "--force",
         action="store_true",
         help="Skip interactive confirmations (for automation)",
+    )
+
+    parser.add_argument(
+        "--model",
+        choices=list(GEMINI_MODELS.keys()),
+        default=DEFAULT_MODEL,
+        help=f"AI model to use for metadata extraction (default: {DEFAULT_MODEL})",
     )
 
     return parser.parse_args()
@@ -273,8 +281,8 @@ def main():
 
     # Initialize the main extractor
     try:
-        extractor = PDFMetadataExtractor(api_key)
-        print("🔑 Gemini API connection established")
+        extractor = PDFMetadataExtractor(api_key, args.model)
+        print(f"🔑 Gemini API connection established (using {args.model} model)")
     except Exception as e:
         print(f"❌ Failed to initialize Gemini API: {e}")
         print("Check your API key and internet connection")
