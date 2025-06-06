@@ -26,6 +26,7 @@ The application follows a modular design with clear separation of concerns:
 # Examples
 ./run.sh ./documents ./organized --max-pages 1 --force
 ./run.sh ./papers ./results --no-copy  # metadata only, no file copying
+./run.sh ./papers ./results --model pro  # use Pro model for better accuracy
 ```
 
 ### Testing
@@ -62,7 +63,8 @@ sudo apt-get install poppler-utils  # Ubuntu/Debian
 - Uses 6-second delays between Gemini API calls (configurable in `config.py`)
 - Implements exponential backoff for rate limit errors (60s base delay)
 - Retry logic handles transient errors (timeouts, network issues)
-- API model version specified in `config.py` (currently gemini-2.5-flash-preview-05-20)
+- Multiple AI models supported: flash (default, faster/cheaper) and pro (more accurate)
+- Model versions defined in `config.py` GEMINI_MODELS dictionary
 
 ### PDF Processing Pipeline
 1. `PDFProcessor.pdf_to_images()` converts first N pages to PIL Images

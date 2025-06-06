@@ -7,6 +7,7 @@ This tool uses Google's Gemini AI to analyze PDF documents, extract key metadata
 ## 🚀 Features
 
 - **AI-Powered Extraction**: Uses Google Gemini AI to read PDF content and extract metadata
+- **Multiple AI Models**: Support for Flash (gemini-2.5-flash-preview-05-20) and Pro (gemini-2.5-pro-preview-06-05) models
 - **Smart Renaming**: Automatically renames files in format: `YEAR - AUTHOR - TITLE.pdf`
 - **Batch Processing**: Process entire directories of PDF files at once
 - **Non-Destructive**: Creates renamed copies while preserving original files
@@ -30,6 +31,9 @@ echo "GEMINI_API_KEY=your-actual-api-key-here" > .env
 
 # Process only first page (faster/cheaper)
 ./run.sh ./documents ./organized --max-pages 1
+
+# Use Pro model (gemini-2.5-pro-preview-06-05) for better accuracy
+./run.sh ./documents ./organized --model pro
 
 # Automation mode (skip confirmations)
 ./run.sh ./documents ./organized --force

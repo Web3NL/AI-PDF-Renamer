@@ -163,7 +163,26 @@ else
     print_test "Different max-pages parameter (SKIPPED - no API key)"
 fi
 
-# Test 7: Virtual environment creation logic
+# Test 7: Pro model processing
+if [[ "$HAS_API_KEY" == "true" ]]; then
+    print_test "Pro model processing (--model pro)"
+    rm -rf "$TEST_OUTPUT_DIR" && mkdir -p "$TEST_OUTPUT_DIR"
+    if ./run.sh "$SAMPLE_DIR" "$TEST_OUTPUT_DIR" --model pro --max-pages 1 --force >/dev/null 2>&1; then
+        if [[ $(find "$TEST_OUTPUT_DIR" -name "*.pdf" | wc -l) -gt 0 ]]; then
+            print_pass
+        else
+            print_fail "Pro model processing failed - no files generated"
+            ((FAILED_TESTS++))
+        fi
+    else
+        print_fail "Pro model test failed"
+        ((FAILED_TESTS++))
+    fi
+else
+    print_test "Pro model processing (SKIPPED - no API key)"
+fi
+
+# Test 8: Virtual environment creation logic
 print_test "Virtual environment handling"
 # Temporarily rename venv to test auto-creation
 if [[ -d "venv" ]]; then
@@ -186,7 +205,7 @@ fi
 # Test results summary
 echo
 echo
-TOTAL_TESTS=7
+TOTAL_TESTS=8
 PASSED_TESTS=$((TOTAL_TESTS - FAILED_TESTS))
 
 echo "Tests passed: $PASSED_TESTS/$TOTAL_TESTS"

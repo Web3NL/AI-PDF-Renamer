@@ -41,7 +41,9 @@ show_help() {
     echo "OPTIONS:"
     echo "  --no-copy           Only extract metadata, don't copy/rename files"
     echo "  --max-pages N       Analyze only first N pages of each PDF (default: 2)"
-    echo "  --model MODEL       AI model to use: flash (default) or pro"
+    echo "  --model MODEL       AI model to use:"
+    echo "                        flash (gemini-2.5-flash-preview-05-20, default)"
+    echo "                        pro (gemini-2.5-pro-preview-06-05)"
     echo "  --force             Skip interactive confirmations (for automation)"
     echo "  --help              Show this help message"
     echo
@@ -55,7 +57,7 @@ show_help() {
     echo "  # Process only first page of each PDF:"
     echo "  $0 ./documents ./organized --max-pages 1"
     echo
-    echo "  # Use Pro model for better accuracy:"
+    echo "  # Use Pro model for better accuracy (slower but more accurate):"
     echo "  $0 ./documents ./organized --model pro"
     echo
     echo "  # Batch processing for automation:"
