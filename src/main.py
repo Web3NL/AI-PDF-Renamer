@@ -8,8 +8,8 @@ from datetime import datetime
 from pathlib import Path
 from typing import Any, Dict, List
 
-from config import (DEFAULT_MAX_PAGES, DEFAULT_OUTPUT_FILE,
-                    DEFAULT_RATE_LIMIT_DELAY, PDF_EXTENSIONS, GEMINI_MODELS, DEFAULT_MODEL)
+from config import (DEFAULT_MAX_PAGES, DEFAULT_MODEL, DEFAULT_OUTPUT_FILE,
+                    DEFAULT_RATE_LIMIT_DELAY, GEMINI_MODELS, PDF_EXTENSIONS)
 from file_manager import FileManager
 from metadata_extractor import MetadataExtractor
 from pdf_processor import PDFProcessor

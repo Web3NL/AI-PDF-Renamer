@@ -4,7 +4,7 @@
 # Gemini API model versions for metadata extraction
 GEMINI_MODELS = {
     "flash": "gemini-2.5-flash-preview-05-20",
-    "pro": "gemini-2.5-pro-preview-06-05"
+    "pro": "gemini-2.5-pro-preview-06-05",
 }
 DEFAULT_MODEL = "flash"
 
