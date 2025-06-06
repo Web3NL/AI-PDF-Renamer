@@ -24,9 +24,16 @@ if ! git rev-parse --git-dir > /dev/null 2>&1; then
     exit 1
 fi
 
-# Check if working directory is clean
+# Run pre-release checks first
+print_info "Running pre-release checks..."
+if ! ./scripts/pre-release-check.sh; then
+    print_error "Pre-release checks failed"
+    exit 1
+fi
+
+# Check if working directory is clean after pre-release checks
 if [[ -n $(git status --porcelain) ]]; then
-    print_error "Working directory is not clean. Please commit or stash changes first."
+    print_error "Working directory is not clean after pre-release checks. Please commit any changes first."
     git status --short
     exit 1
 fi
@@ -101,11 +108,10 @@ print_info "New version will be: $NEW_VERSION"
 # Confirm the release
 echo
 print_warning "This will:"
-echo "  1. Run pre-flight checks (formatting, syntax check)"
-echo "  2. Update src/version.py to version $NEW_VERSION"
-echo "  3. Commit the version bump"
-echo "  4. Create and push tag v$NEW_VERSION"
-echo "  5. Trigger the GitHub Actions release workflow"
+echo "  1. Update src/version.py to version $NEW_VERSION"
+echo "  2. Commit the version bump"
+echo "  3. Create and push tag v$NEW_VERSION"
+echo "  4. Trigger the GitHub Actions release workflow"
 echo
 
 read -p "Continue with release? [y/N] " -n 1 -r
@@ -132,32 +138,7 @@ trap rollback ERR
 
 print_info "Starting release process..."
 
-# 1. Pre-flight checks
-print_info "Running pre-flight checks..."
-
-# Check if Python is available
-if ! command -v python3 &> /dev/null; then
-    print_error "python3 is not available"
-    exit 1
-fi
-
-# Install dev dependencies if needed
-print_info "Installing development dependencies..."
-python3 -m pip install --quiet black isort flake8
-
-print_info "Applying code formatting..."
-python3 -m black src/ test/ 2>/dev/null || true
-print_success "Code formatting applied"
-
-print_info "Sorting imports..."
-python3 -m isort src/ test/ 2>/dev/null || true
-print_success "Import sorting applied"
-
-print_info "Running basic syntax check..."
-python3 -m py_compile src/*.py
-print_success "Syntax check passed"
-
-# 2. Update version in version.py
+# 1. Update version in version.py
 print_info "Updating version in src/version.py..."
 if [[ "$OSTYPE" == "darwin"* ]]; then
     # macOS
@@ -177,7 +158,7 @@ else
     sed -i "s/^__version_info__ = tuple.*/__version_info__ = tuple(map(int, __version__.split('.')))/" src/version.py
 fi
 
-# 3. Verify the version was updated correctly
+# 2. Verify the version was updated correctly
 UPDATED_VERSION=$(grep '^__version__ = ' src/version.py | sed 's/__version__ = "\(.*\)"/\1/')
 if [[ "$UPDATED_VERSION" != "$NEW_VERSION" ]]; then
     print_error "Failed to update version in src/version.py"
@@ -185,7 +166,7 @@ if [[ "$UPDATED_VERSION" != "$NEW_VERSION" ]]; then
 fi
 print_success "Version updated to $NEW_VERSION"
 
-# 4. Commit the changes
+# 3. Commit the changes
 print_info "Committing version bump..."
 git add src/version.py
 git commit -m "chore: bump version to $NEW_VERSION
@@ -194,7 +175,7 @@ git commit -m "chore: bump version to $NEW_VERSION
 
 Co-Authored-By: Claude <noreply@anthropic.com>"
 
-# 5. Create and push tag
+# 4. Create and push tag
 print_info "Creating tag v$NEW_VERSION..."
 git tag "v$NEW_VERSION"
 
