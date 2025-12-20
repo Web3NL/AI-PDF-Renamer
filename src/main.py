@@ -100,6 +100,7 @@ class PDFMetadataExtractor:
         output_dir: str = None,
         results_file_path: str = None,
         max_pages: int = DEFAULT_MAX_PAGES,
+        rate_limit_delay: float = DEFAULT_RATE_LIMIT_DELAY,
     ) -> List[Dict[str, Any]]:
         """Process all PDF files in a directory with rate limiting and progress tracking"""
         # Validate input parameters
@@ -158,9 +159,10 @@ class PDFMetadataExtractor:
                 f"💾 Results will be saved incrementally to: {os.path.abspath(results_file_path)}"
             )
 
-        print(
-            f"⏰ Rate limiting: {DEFAULT_RATE_LIMIT_DELAY} seconds between API calls to respect Gemini's rate limits"
-        )
+        if rate_limit_delay > 0:
+            print(f"⏰ Rate limiting: {rate_limit_delay} seconds between API calls")
+        else:
+            print("⏰ Rate limiting: disabled (paid tier mode)")
 
         # Process each PDF file with rate limiting
         for i, pdf_file in enumerate(pdf_files, 1):
@@ -184,9 +186,9 @@ class PDFMetadataExtractor:
                     )
 
             # Rate limiting: wait between successful API calls
-            if i < len(pdf_files) and "error" not in result:
+            if i < len(pdf_files) and "error" not in result and rate_limit_delay > 0:
                 processing_time = time.time() - processing_start
-                remaining_delay = max(0, DEFAULT_RATE_LIMIT_DELAY - processing_time)
+                remaining_delay = max(0, rate_limit_delay - processing_time)
                 if remaining_delay > 0:
                     print(
                         f"⏳ Waiting {remaining_delay:.1f} more seconds to respect API rate limits..."
@@ -245,6 +247,13 @@ Examples:
         choices=list(GEMINI_MODELS.keys()),
         default=DEFAULT_MODEL,
         help=f"AI model to use for metadata extraction (default: {DEFAULT_MODEL})",
+    )
+
+    parser.add_argument(
+        "--delay",
+        type=float,
+        default=DEFAULT_RATE_LIMIT_DELAY,
+        help=f"Seconds between API calls (default: {DEFAULT_RATE_LIMIT_DELAY}, use 0 for paid tier)",
     )
 
     return parser.parse_args()
@@ -317,6 +326,7 @@ def main():
         output_dir if not args.no_copy else None,
         results_file_path,
         args.max_pages,
+        args.delay,
     )
 
     if not results:
